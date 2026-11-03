@@ -1,0 +1,23 @@
+name: qsar-ad
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - rdkit
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - lightgbm          # or xgboost, for gradient boosting
+  - matplotlib
+  - seaborn
+  - umap-learn        # chemical space map
+  - pyarrow           # fast parquet files for processed data
+  - tqdm
+  - tabulate
+  - jupyterlab
+  - ipykernel
+  - pytest
+  - pip
+  - pip:
+      - -e .          # installs src/qsar_ad (needs pyproject.toml)
