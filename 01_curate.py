@@ -3,8 +3,6 @@ from qsar_ad import build_raw_table, curate_chembl_logd
 
 raw = build_raw_table("data/raw/CHEMBL_30_10_2026.csv",
                       "data/raw/CHEMBL_01_11_2026.csv")
-print(raw["Standard Type"].value_counts())
-print(raw["Assay ChEMBL ID"].nunique(), raw["Document ChEMBL ID"].nunique())
 
 curated, log = curate_chembl_logd(raw)
 Path("data/processed").mkdir(parents=True, exist_ok=True)

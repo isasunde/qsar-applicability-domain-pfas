@@ -12,7 +12,8 @@ _uncharger = rdMolStandardize.Uncharger()
 
 
 def standardize_mol(smiles: str):
-    """Cleanup -> Largest fragment (strips salts) -> Neutralize. Returns Mol or None."""
+    """Parse SMILES strind -> Cleanup -> Keep only largest fragment (strips salts) -> Neutralize charges. 
+    Returns RDKit molecule or None."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
@@ -26,6 +27,7 @@ def standardize_mol(smiles: str):
         return None
 
 class CurationLog:
+    """Log of curation steps, with counts of records in/out and notes."""
     def __init__(self):
         self.rows = []
 
@@ -46,6 +48,8 @@ def curate_chembl_logd(
     standard_type: str = "LogD7.4",
     max_conflict_sd: float = 0.5,
 ) -> tuple[pd.DataFrame, CurationLog]:
+    """Curate ChEMBL LogD dataset: Keep small molecules, standardize structures, resolve duplicates, and log every step.
+    Returns curated dataframe and a CurationLog object."""
     log = CurationLog()
     n = len(data)
     log.add("Raw export", n, n, "ChEMBL activity export")

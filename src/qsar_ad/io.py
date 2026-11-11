@@ -23,6 +23,8 @@ def read_chembl_csv(path: str) -> pd.DataFrame:
 
 
 def build_raw_table(molecule_path: str, activity_path: str) -> pd.DataFrame:
+    """Merge ChEMBL molecule and activity exports on ChEMBL ID.
+    The molecule file has one row per compound, the activity file has one row per assay result"""
     mol = read_chembl_csv(molecule_path).rename(
         columns={"Compound ChEMBL ID": "ChEMBL ID"})
     act = read_chembl_csv(activity_path).rename(
