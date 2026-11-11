@@ -52,3 +52,51 @@ The steps are documented in [`docs/curation_log.md`](docs/curation_log.md):
 - The raw files can't be reproduced exactly from the queries alone, because
   the ChEMBL web interface changes between releases. Use the files in
   `data/raw/` for exact reproduction.
+
+  ## Data splits
+
+Models are evaluated under three splitting strategies of increasing difficulty.
+In each, the 4,190 curated compounds are divided into train (70%), calibration
+(10%, used for conformal prediction) and test (20%) sets. Whole groups are
+assigned to one set only, and the code asserts that no group is shared between
+sets.
+
+| Strategy | Grouping | Groups | Largest group | Singletons |
+|---|---|---|---|---|
+| Random | Each molecule is its own group | 4,190 | 1 | 4,190 |
+| Scaffold | Bemis-Murcko scaffold | 2437 | 76 | 1,898 |
+| Cluster | Butina clustering, Tanimoto distance cutoff 0.6 (Morgan radius 2, 2048 bits) | 1261 | 71 | 778 |
+
+### How difficult is each split?
+
+For each test molecule, I computed the highest Tanimoto similarity to any
+training molecule (Morgan fingerprints, radius 2, 2048 bits) across 5 seeds.
+The following values are the mean across all 5 seeds
+
+| Split | Train / cal / test | Median max similarity (test to train) | Test molecules with max similarity < 0.4 |
+|---|---|---|---|
+| Random | 2,933 / 419 / 838 | 0.68 | 19% |
+| Scaffold | 2,927 / 420 / 841 | 0.56 | 26% |
+| Cluster | 2,928 / 421 / 840 | 0.37 | 65% |
+
+Similarity to the training set falls steadily from random to scaffold to
+cluster splits, so the three strategies probe progressively more novel
+chemistry. Under the cluster split, two thirds of test molecules have no
+training neighbour above 0.4 Tanimoto similarity, compared with about one fifth
+under a random split.
+
+### Notes
+- Even the random split has 19% of test molecules below 0.4 similarity,
+  because the dataset is structurally diverse (4,190 drug-like compounds,
+  many without close analogues). Expect a smaller gap between random and
+  scaffold performance than in more redundant QSAR datasets.
+- Scaffold groups are uneven: acyclic molecules share one empty scaffold and
+  are held out together, so the actual set sizes deviate slightly from the
+  70/10/20 target.
+- The cluster split is the closest proxy for PFAS, which are expected to sit
+  far from drug-like training chemistry (this is tested in the applicability
+  domain analysis).
+- Splits are repeated over 5 random seeds (0-4) to give error bars.
+- Calibration sets use the same grouping as the test set, so conformal
+  intervals are calibrated under the same level of novelty as the test.
+- Scalers and any tuning use the training set only.

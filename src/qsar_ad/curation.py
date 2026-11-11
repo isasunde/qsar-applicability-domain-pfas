@@ -1,4 +1,4 @@
-"""Curation of property dataset: Standardize structures, Resolve duplicates, and log every step."""
+"""Curation of property dataset: Standardize structures, Resolve duplicates, and Log every step."""
 from __future__ import annotations
 
 import pandas as pd
@@ -12,7 +12,7 @@ _uncharger = rdMolStandardize.Uncharger()
 
 
 def standardize_mol(smiles: str):
-    """Cleanup -> largest fragment (strips salts) -> neutralize. Returns Mol or None."""
+    """Cleanup -> Largest fragment (strips salts) -> Neutralize. Returns Mol or None."""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
@@ -42,28 +42,28 @@ class CurationLog:
         return self.to_frame().to_markdown(index=False)  # needs `tabulate`
 
 def curate_chembl_logd(
-    df: pd.DataFrame,
+    data: pd.DataFrame,
     standard_type: str = "LogD7.4",
     max_conflict_sd: float = 0.5,
 ) -> tuple[pd.DataFrame, CurationLog]:
     log = CurationLog()
-    n = len(df)
-    log.add("raw export", n, n, "ChEMBL activity export")
+    n = len(data)
+    log.add("Raw export", n, n, "ChEMBL activity export")
 
     # 1. Small molecules only
-    out = df
+    out = data
     if "Type" in out.columns:
         out = out[out["Type"] == "Small molecule"]
     log.add("Type == Small molecule", n, len(out)); n = len(out)
 
-    # 2. Keep only the experimental endpoint
+    # 2. Ensure only the desired experimental endpoint is kept
     out = out[out["Standard Type"] == standard_type].copy()
     log.add(f"Standard Type == {standard_type}", n, len(out)); n = len(out)
 
-    # 3. Numeric values
+    # 3. Convert endpoint to numeric values
     out["y"] = pd.to_numeric(out["Standard Value"], errors="coerce")
     out = out[out["y"].notna()]
-    log.add("numeric Standard Value", n, len(out)); n = len(out)
+    log.add("Numeric Standard Value", n, len(out)); n = len(out)
 
     # 4. Keep identifiers and the target (deliberately drop calculated properties)
     keep = ["ChEMBL ID", "Smiles", "Assay ChEMBL ID", "Document ChEMBL ID"]
@@ -76,8 +76,8 @@ def curate_chembl_logd(
     mols = out["smiles_raw"].map(standardize_mol)
     out = out[mols.notna()].copy()
     mols = mols[mols.notna()]
-    log.add("RDKit parse + standardize", n, len(out),
-            "unparsable or failed standardization"); n = len(out)
+    log.add("RDKit parse + Standardize", n, len(out),
+            "Unparsable or Failed standardization"); n = len(out)
     out["smiles"] = mols.map(Chem.MolToSmiles)
     out["inchikey"] = mols.map(Chem.MolToInchiKey)
 
@@ -87,16 +87,16 @@ def curate_chembl_logd(
     conflicting = stats[(stats["n_meas"] > 1) & (stats["y_sd"] > max_conflict_sd)].index
     first = out.drop_duplicates("inchikey").set_index("inchikey")
     first = first.drop(columns="y").join(stats)
-    log.add("merge duplicate structures", n, len(first),
+    log.add("Merge duplicate structures", n, len(first),
             f"{(stats['n_meas'] > 1).sum()} structures had repeats")
     n = len(first)
 
     # 7. Drop structures whose repeats disagree
     first = first.drop(index=conflicting)
-    log.add(f"drop conflicting repeats (SD > {max_conflict_sd})", n, len(first)); n = len(first)
+    log.add(f"Drop conflicting repeats (SD > {max_conflict_sd})", n, len(first)); n = len(first)
 
     curated = first.reset_index().rename(columns={"y_median": "y"})
     curated = curated[["chembl_id", "smiles", "inchikey", "y", "n_meas",
                        "Assay ChEMBL ID", "Document ChEMBL ID"]]
-    log.add("final curated set", n, len(curated))
+    log.add("Final curated set", n, len(curated))
     return curated, log
