@@ -170,5 +170,5 @@ By number of fully fluorinated carbons (OECD-style SMARTS, my approximation):
 
 **Caveats.** PFAS were compared with the full training set while test molecules were compared with a 70% subset, which favours PFAS slightly. Charged forms were neutralized, whereas measured logD refers to pH 7.4. The list includes large molecules (up to about 3,600 Da) that are far from drug-like chemistry for reasons other than fluorine.
 
-The PFAS list contains molecules from [x] to [y] Da, whereas the training set spans 113-1066 Da (1st-99th percentile: 151-621). Restricting the list to the training mass range leaves 15730 structures (80.5%) and gives a median max similarity of 0.19 and 3.6% with similarity ≥ 0.4, compared with 0.19 and 3.2% for the full list
+The PFAS list contains molecules from 44 to 3322 Da, whereas the training set spans 113-1066 Da (1st-99th percentile: 151-621). Restricting the list to the training mass range leaves 15730 structures (80.5%) and gives a median max similarity of 0.19 and 3.6% with similarity ≥ 0.4, compared with 0.19 and 3.2% for the full list
 (0.37 and 65% for the cluster-split test set). Comparing within heavy-atom bins, PFAS are below cluster-split test molecules in all bins.
