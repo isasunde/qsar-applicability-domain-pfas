@@ -26,6 +26,23 @@ def standardize_mol(smiles: str):
     except Exception:
         return None
 
+def standardize_pfas(smiles):
+    """Parse SMILES strind -> Cleanup -> Keep fragment with the most fluorine (strips salts even when the non-fluorinated compound is larger) -> Neutralize charges.
+    Returns RDKit molecule or None."""
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    try:
+        mol = rdMolStandardize.Cleanup(mol)
+        frags = Chem.GetMolFrags(mol, asMols=True)
+        mol = max(frags, key=lambda f: (sum(a.GetAtomicNum() == 9 for a in f.GetAtoms()),
+                                        f.GetNumHeavyAtoms()))
+        mol = rdMolStandardize.Uncharger().uncharge(mol)
+        Chem.SanitizeMol(mol)
+        return mol
+    except Exception:
+        return None
+    
 class CurationLog:
     """Log of curation steps, with counts of records in/out and notes."""
     def __init__(self):
