@@ -31,6 +31,7 @@ def make_model(name: str, feature: str, seed: int) -> Pipeline:
         steps.append(("var", VarianceThreshold(0.0)))
         if name == "ridge":
             steps.append(("scale", RobustScaler()))
+            steps.append(("clip", FunctionTransformer(lambda X: np.clip(X, -5, 5))))
 
     if name == "ridge":
         # RidgeCV picks alpha by efficient leave-one-out CV inside the training set.
