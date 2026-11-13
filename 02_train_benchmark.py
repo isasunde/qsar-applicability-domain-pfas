@@ -6,6 +6,7 @@ from qsar_ad import (compute_groups, split_from_groups, split_report,
                      morgan_fps, morgan_matrix, rdkit_descriptors,
                      run_benchmark, summarize, plot_split_performance)
 
+# Load in curated dataset and compute Morgan fingerprints
 data = pd.read_parquet("data/processed/lipo_curated.parquet").reset_index(drop=True)
 fps = morgan_fps(data["smiles"])
 
@@ -13,9 +14,10 @@ fps = morgan_fps(data["smiles"])
 for method in ["random", "scaffold", "cluster"]:
     groups = compute_groups(data, method)          # once per method
     sizes = np.bincount(groups)
-    print(method, "groups:", len(sizes), "largest:", sizes.max(),
+    print('\n', method, "groups:", len(sizes), "largest:", sizes.max(),
           "singletons:", (sizes == 1).sum())
 
+    # Run split report for each seed and print the mean over seeds
     results = []
     for seed in range(5):
         split = split_from_groups(groups, seed=seed)
@@ -24,10 +26,17 @@ for method in ["random", "scaffold", "cluster"]:
     print(f"\nMean split report for {method} :")
     print(pd.DataFrame(results).mean().to_string())
 
-# Run the benchmark for all methods, seeds, models, and features
-desc = rdkit_descriptors(data["smiles"])
+# Compute descriptors for the training set or load to save time
+cache = Path("data/processed/rdkit_descriptors.parquet")
+if cache.exists():
+    desc = pd.read_parquet(cache)
+else:
+    desc = rdkit_descriptors(data["smiles"],  "data/processed/rdkit_descriptors.parquet")
+
 features = {"morgan": morgan_matrix(data["smiles"]),
             "descriptors": desc.to_numpy()}
+
+# Run the benchmark for all methods, seeds, models, and features
 metrics, preds = run_benchmark(data, features, seeds=range(5))
 
 summary = summarize(metrics)
@@ -41,9 +50,3 @@ Path("results/tables").mkdir(parents=True, exist_ok=True)
 metrics.to_csv("results/tables/metrics_by_seed.csv", index=False)
 preds.to_parquet("results/tables/predictions.parquet", index=False)
 summary.to_csv("results/tables/summary_test.csv", index=False)
-
-
-                
-                
-
-        
