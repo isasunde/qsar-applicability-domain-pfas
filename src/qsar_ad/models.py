@@ -14,6 +14,7 @@ from sklearn.feature_selection import VarianceThreshold
 
 MODELS = ("mean", "ridge", "rf", "lgbm")
 FEATURES = ("morgan", "descriptors")
+F32_MAX = float(np.finfo(np.float32).max)
 
 
 def make_model(name: str, feature: str, seed: int) -> Pipeline:
@@ -26,6 +27,8 @@ def make_model(name: str, feature: str, seed: int) -> Pipeline:
     # Preprocessing: only descriptors need cleaning; only ridge needs scaling.
     steps = []
     if feature == "descriptors":
+        steps.append(("float32", FunctionTransformer(
+            lambda X: np.clip(np.where(np.isfinite(X), X, np.nan), -F32_MAX, F32_MAX))))
         steps.append(("inf", FunctionTransformer(lambda X: np.where(np.isfinite(X), X, np.nan))))
         steps.append(("impute", SimpleImputer(strategy="median")))
         steps.append(("var", VarianceThreshold(0.0)))

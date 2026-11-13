@@ -17,7 +17,7 @@ def morgan_matrix(smiles, radius: int = 2, n_bits: int = 2048) -> np.ndarray:
                      ).astype(np.float32)
 
 
-def rdkit_descriptors(smiles) -> pd.DataFrame:
+def rdkit_descriptors(smiles, file_path = None) -> pd.DataFrame:
     """All RDKit 2D descriptors per molecule. Computing them is per-molecule, so doing
     it on the full dataset does not leak anything. Failures become NaN."""
     names = [n for n, _ in Descriptors._descList]
@@ -28,4 +28,7 @@ def rdkit_descriptors(smiles) -> pd.DataFrame:
             rows.append([d.get(n, np.nan) for n in names])
         except Exception:
             rows.append([np.nan] * len(names))
+
+    if file_path:
+        pd.DataFrame(rows, columns=names, dtype="float64").to_parquet(file_path, index=False)
     return pd.DataFrame(rows, columns=names, dtype="float64")

@@ -7,7 +7,7 @@ def plot_split_performance(summary, metric="rmse", path=None):
     s = summary.assign(label=lambda d: d["model"] + " / " + d["feature"])
     labels = list(dict.fromkeys(s["label"]))
 
-    fig, ax = plt.subplots(figsize=(9, 4))
+    fig, ax = plt.subplots(figsize=(7, 4))
     w = 0.25
 
     # Draw a bar for each method, offsetting the x position by the method index
@@ -59,5 +59,19 @@ def plot_similarity_distributions(series: dict, threshold=0.4, path=None):
     ax.axvline(threshold, color="grey", linestyle="--")
     ax.set_xlabel("max Tanimoto similarity to training set")
     ax.set_ylabel("density"); ax.legend(); fig.tight_layout()
+    if path: fig.savefig(path, dpi=200)
+    return fig
+
+def plot_coverage_by_similarity(cond, model="rf", feature="descriptors", alpha=0.1, path=None):
+    d = cond[(cond["model"] == model) & (cond["feature"] == feature) & (cond["alpha"] == alpha)]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    for (kind, method), g in d.groupby(["kind", "method"]):
+        ax.plot([b.left for b in g["sim_bin"]], g["coverage"], marker="o",
+                linestyle="-" if kind == "absolute" else "--",
+                label=f"{method} ({kind})")
+    ax.axhline(1 - alpha, color="grey", linestyle=":")
+    ax.set_xlabel("max Tanimoto similarity to training set (bin start)")
+    ax.set_ylabel("empirical coverage"); ax.set_ylim(0.4, 1.02)
+    ax.legend(fontsize=8); fig.tight_layout()
     if path: fig.savefig(path, dpi=200)
     return fig

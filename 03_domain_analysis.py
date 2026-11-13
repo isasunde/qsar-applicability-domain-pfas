@@ -2,48 +2,57 @@ from pathlib import Path
 
 import pandas as pd
 
-from qsar_ad.domain import (ad_inside_outside, attach_errors, compute_split_ad, coverage_curve,
-                            error_by_similarity, error_similarity_correlation, fluorine_stats,
-                            load_pfas, reference_similarity)
-from qsar_ad.features import morgan_matrix
-from qsar_ad.plotting import (plot_coverage_curve, plot_error_vs_similarity,
-                              plot_similarity_distributions)
+from qsar_ad import (ad_inside_outside, attach_errors, compute_split_ad, coverage_curve,
+                    error_by_similarity, error_similarity_correlation, fluorine_stats,
+                    load_pfas, reference_similarity, morgan_matrix, plot_coverage_curve, 
+                    plot_error_vs_similarity, plot_similarity_distributions)
 
+# Set pandas display options and define output directories
 pd.set_option("display.width", 200, "display.max_columns", None)
 out = Path("results/tables"); fig_dir = Path("results/figures")
 fig_dir.mkdir(parents=True, exist_ok=True)
 
+# Load curated dataset and compute Morgan fingerprints for the training set
 df = pd.read_parquet("data/processed/lipo_curated.parquet").reset_index(drop=True)
 X = morgan_matrix(df["smiles"])
 preds = pd.read_parquet(out / "predictions.parquet")
 
 # ---- Part A: does the AD predict error? ----
+# Compute AD scores for each split and seed, then attach to predictions
 ad = compute_split_ad(df, X)                      # same defaults as run_benchmark
 d = attach_errors(preds, ad)
 ad.to_parquet(out / "ad_scores.parquet")
 
+# Compute error by similarity, correlation, and coverage curve
 binned = error_by_similarity(d)
 corr = error_similarity_correlation(d)
 inout = ad_inside_outside(d, "in_ad")
 inout_fixed = ad_inside_outside(d, "near_train")
 curve = coverage_curve(d)
+
+# Save results to CSV files
 for name, t in [("error_by_similarity", binned), ("error_similarity_correlation", corr),
                 ("ad_inside_outside", inout), ("ad_inside_outside_sim04", inout_fixed),
                 ("coverage_curve", curve)]:
     t.to_csv(out / f"{name}.csv", index=False)
 
 print(corr.round(3)); print(inout.round(3))
+
+# Plot error vs similarity and coverage curve, then save the figures
 plot_error_vs_similarity(binned, path=fig_dir / "error_vs_similarity.png")
 plot_coverage_curve(curve, path=fig_dir / "coverage_curve.png")
 
 # ---- Fluorine content of the training set ----
+# Compute fluorine statistics and print summary
 fs = fluorine_stats(df["smiles"])
 print("curated set: any F:", int((fs.n_F > 0).sum()),
       "| OECD-style CF2/CF3:", int(fs.pfas_oecd.sum()), "of", len(df))
 
 # ---- Part B: PFAS coverage  ----
+# Load PFAS list
 pfas_path = Path("data/raw/Chemical List PFASSTRUCT-2026-11-12.csv")
 if pfas_path.exists():
+    # Load PFAS & training data and compute descriptors
     pfas, counts = load_pfas(pfas_path, smiles_col="SMILES")   # adjust column name
     print(counts)
     res = reference_similarity(pfas["smiles"], morgan_matrix(pfas["smiles"]), X)
